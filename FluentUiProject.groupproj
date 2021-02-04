@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{AEA60964-40F1-495E-BD13-FF07BBCD3519}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="FluentUI.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="FluentUIDemo.dproj">
+            <Dependencies>FluentUI.dproj</Dependencies>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="FluentUI">
+        <MSBuild Projects="FluentUI.dproj"/>
+    </Target>
+    <Target Name="FluentUI:Clean">
+        <MSBuild Projects="FluentUI.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FluentUI:Make">
+        <MSBuild Projects="FluentUI.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FluentUIDemo" DependsOnTargets="FluentUI">
+        <MSBuild Projects="FluentUIDemo.dproj"/>
+    </Target>
+    <Target Name="FluentUIDemo:Clean" DependsOnTargets="FluentUI:Clean">
+        <MSBuild Projects="FluentUIDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FluentUIDemo:Make" DependsOnTargets="FluentUI:Make">
+        <MSBuild Projects="FluentUIDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="FluentUI;FluentUIDemo"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="FluentUI:Clean;FluentUIDemo:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="FluentUI:Make;FluentUIDemo:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
