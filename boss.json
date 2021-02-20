@@ -1,0 +1,9 @@
+{
+	"name": "FluentUI",
+	"description": "Delphi Fluent UI",
+	"version": "0.0.1",
+	"homepage": "https://github.com/ms301/FluentUI",
+	"mainsrc": "./",
+	"projects": [],
+	"dependencies": {}
+}
