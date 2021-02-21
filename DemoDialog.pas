@@ -15,11 +15,9 @@ type
     Button2: TButton;
     Button3: TButton;
     SpeedButton1: TSpeedButton;
-    procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
-    FluendDialog1: TFluendDialog;
   public
     { Public declarations }
   end;
@@ -31,16 +29,14 @@ implementation
 
 {$R *.fmx}
 
-procedure TForm7.FormCreate(Sender: TObject);
-begin
-  FluendDialog1 := TFluendDialog.Create(Self);
-end;
-
 procedure TForm7.Button1Click(Sender: TObject);
+var
+  lDialog: IFluentDialogDefault;
 begin
-  FluendDialog1.Title := 'Hello world';
-  FluendDialog1.SubText := 'FMX = Fluent UI = <3';
-  FluendDialog1.Show;
+  lDialog := TFluentDialogDefault.Create(Self);
+  lDialog.Title := 'Hello world';
+  lDialog.SubTitle := 'FMX + Fluent UI = <3';
+  lDialog.Show;
 end;
 
 end.

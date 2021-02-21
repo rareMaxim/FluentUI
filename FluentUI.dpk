@@ -32,6 +32,7 @@ requires
   fmx;
 
 contains
-  FluentUI.Dialog in 'FluentUI.Dialog.pas';
+  FluentUI.Dialog in 'FluentUI.Dialog.pas',
+  FluentUI.ColorPalettes in 'FluentUI.ColorPalettes.pas';
 
 end.
