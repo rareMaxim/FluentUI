@@ -146,7 +146,7 @@ uses
 
 procedure TFluendDialogOverlay.BuildOverlay(AOverlay: TRectangle);
 begin
-  AOverlay.BeginUpdate;
+ // AOverlay.BeginUpdate;
   try
     AOverlay.Parent := Screen.ActiveForm;
     FOverlay.Align := TAlignLayout.Client;
@@ -154,7 +154,7 @@ begin
     FOverlay.OnClick := DoOverlayRectClick;
     FOverlay.Visible := False;
   finally
-    AOverlay.EndUpdate;
+ // AOverlay.EndUpdate;
   end;
 end;
 
@@ -207,7 +207,7 @@ end;
 
 procedure TFluendDialogBaseContent.BuildBaseContent(ABaseContent: TRectangle);
 begin
-  ABaseContent.BeginUpdate;
+// ABaseContent.BeginUpdate;
   try
     ABaseContent.Parent := FOverlay;
     ABaseContent.Align := TAlignLayout.Center;
@@ -216,7 +216,7 @@ begin
     ABaseContent.YRadius := 2;
     ABaseContent.Stroke.Kind := TBrushKind.None;
   finally
-    ABaseContent.EndUpdate;
+  // ABaseContent.EndUpdate;
   end;
 end;
 
@@ -303,22 +303,23 @@ end;
 
 procedure TFluentDialogDefault.ShowButtons(APrimary, ADefault: TButton);
 begin
-  APrimary.BeginUpdate;
-  ADefault.BeginUpdate;
+// APrimary.BeginUpdate;
+// ADefault.BeginUpdate;
   try
     APrimary.StyleLookup := 'FluentButtonPrimary';
     APrimary.Visible := not APrimary.Text.IsEmpty;
     APrimary.Parent := FFooterContent;
     APrimary.Align := TAlignLayout.Right;
+    APrimary.Margins.Left := 4;
     //
     ADefault.StyleLookup := '';
     ADefault.Visible := not ADefault.Text.IsEmpty;
     ADefault.Parent := FFooterContent;
     ADefault.Align := TAlignLayout.Right;
-    ADefault.Position.X := 200;
+    ADefault.Margins.Left := 4;
   finally
-    ADefault.EndUpdate;
-    APrimary.EndUpdate;
+ // ADefault.EndUpdate;
+ // APrimary.EndUpdate;
   end;
 end;
 
@@ -329,6 +330,8 @@ begin
   FFooterContent.Parent := FBaseContent;
   FFooterContent.Align := TAlignLayout.Bottom;
   FFooterContent.Margins.Left := 24;
+  FFooterContent.Margins.Bottom := 24;
+  FFooterContent.Margins.Right := 16;
 
   FPrimaryButton := TButton.Create(FFooterContent);
   FDefaultButton := TButton.Create(FFooterContent);
@@ -351,7 +354,7 @@ end;
 
 procedure TFluentDialogDefault.ShowSubTitleControl(ASubTitleControl: TText);
 begin
-  ASubTitleControl.BeginUpdate;
+// ASubTitleControl.BeginUpdate;
   try
     ASubTitleControl.Parent := FBodyContent;
     ASubTitleControl.Align := TAlignLayout.Client;
@@ -365,13 +368,13 @@ begin
     FBodyContent.Height := ASubTitleControl.Height;
     FSubTitle.Visible := True;
   finally
-    ASubTitleControl.EndUpdate;
+// ASubTitleControl.EndUpdate;
   end;
 end;
 
 procedure TFluentDialogDefault.ShowTitleControl(ATitleControl: TText);
 begin
-  ATitleControl.BeginUpdate;
+// ATitleControl.BeginUpdate;
   try
     ATitleControl.Parent := FHeaderContent;
     ATitleControl.Align := TAlignLayout.Client;
@@ -385,7 +388,7 @@ begin
     FHeaderContent.Height := ATitleControl.Height;
     FTitle.Visible := True;
   finally
-    ATitleControl.EndUpdate;
+ // ATitleControl.EndUpdate;
   end;
 end;
 

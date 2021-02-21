@@ -36,6 +36,7 @@ begin
   lDialog := TFluentDialogDefault.Create(Self);
   lDialog.Title := 'Hello world';
   lDialog.SubTitle := 'FMX + Fluent UI = <3';
+  lDialog.PrimatyButtonText:=':)';
   lDialog.Show;
 end;
 
