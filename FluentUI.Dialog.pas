@@ -2,6 +2,8 @@
 
 interface
 
+{$DEFINE DIALOG_DEBUG_LAYERS}
+
 uses
   FMX.Forms,
   FMX.Objects,
@@ -10,7 +12,9 @@ uses
   FMX.Types,
   FMX.StdCtrls,
   FMX.Layouts,
-  FMX.Controls, System.UITypes, System.Types;
+  FMX.Controls,
+  System.UITypes,
+  System.Types;
 
 type
 {$SCOPEDENUMS ON}
@@ -20,8 +24,12 @@ type
 
   IFluentDialog = interface
     ['{D71BE646-52F3-4B0E-8878-9C0DB0009B49}']
+    function GetOverlayColor: TAlphaColor;
+    procedure SetOverlayColor(const Value: TAlphaColor);
+    //
     procedure Show;
     procedure Close;
+    property OverlayColor: TAlphaColor read GetOverlayColor write SetOverlayColor;
   end;
   /// <summary>
   /// A dialog box (Dialog) is a temporary pop-up that takes focus from the page or
@@ -35,11 +43,10 @@ type
     function GetOverlayColor: TAlphaColor;
     procedure SetOverlayColor(const Value: TAlphaColor);
   protected
-    procedure BuildOverlay(AOverlay: TRectangle);
+    function BuildOverlay: TRectangle;
     procedure DoOverlayRectClick(Sender: TObject);
   public
     constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
     procedure Show; virtual;
     procedure Close; virtual;
     function IsVisible: Boolean; virtual;
@@ -72,12 +79,11 @@ type
     function GetWidth: Single;
     procedure SetWidth(const Value: Single);
   protected
-    procedure BuildBaseContent(ABaseContent: TRectangle);
+    function BuildBaseContent(AOwner: TComponent): TRectangle;
   public
     procedure Show; override;
     procedure Close; override;
     constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
     function IsVisible: Boolean; override;
   published
     property BaseContentColor: TAlphaColor read GetBaseContentColor write SetBaseContentColor;
@@ -96,6 +102,7 @@ type
     function GetDefaultButtonText: string;
     procedure SetDefaultButtonText(const Value: string);
     //
+    procedure Show(AOnButtonClickCallBack: TProc<string>); overload;
     property Title: string read GetTitle write SetTitle;
     property SubTitle: string read GetSubTitle write SetSubTitle;
     property PrimatyButtonText: string read GetPrimatyButtonText write SetPrimatyButtonText;
@@ -108,10 +115,11 @@ type
     FTitle: TText;
     FSubTitle: TText;
     FPrimaryButton, FDefaultButton: TButton;
-    FHeaderContent, FBodyContent, FFooterContent: TLayout;
-    procedure ShowTitleControl(ATitleControl: TText);
-    procedure ShowSubTitleControl(ASubTitleControl: TText);
-    procedure ShowButtons(APrimary, ADefault: TButton);
+    FHeaderContent, FBodyContent, FFooterContent: {$IF Define(DIALOG_DEBUG_LAYERS)}TRectangle{$ELSE}TLayout{$ENDIF};
+    FOnButtonClickCallBack: TProc<string>;
+    function BuildTitleControl(AOwner: TComponent): TText;
+    function BuildSubTitleControl(AOwner: TComponent): TText;
+    procedure BuildButtons(out APrimary, ADefault: TButton);
     function GetTitle: string;
     procedure SetTitle(const Value: string);
     procedure BuildHeader;
@@ -123,9 +131,11 @@ type
     procedure SetDefaultButtonText(const Value: string);
     procedure SetPrimatyButtonText(const Value: string);
     procedure SetSubTitle(const Value: string);
+    procedure DoButtonClicked(Sender: TObject);
   public
     constructor Create(AOwner: TComponent); override;
-    procedure Show; override;
+    procedure Show; overload; override;
+    procedure Show(AOnButtonClickCallBack: TProc<string>); reintroduce; overload;
     procedure Close; override;
     function IsVisible: Boolean; override;
   published
@@ -135,26 +145,44 @@ type
     property DefaultButtonText: string read GetDefaultButtonText write SetDefaultButtonText;
   end;
 
+  IFluentDialogUserContent = interface(IFluentDialogDefault)
+    ['{99A08205-F197-4E84-978F-347365C7FD81}']
+    procedure SetContent(const Value: TControl);
+  end;
+
+  TFluentDialogUserContent = class(TFluentDialogDefault, IFluentDialogUserContent)
+  private
+    FContent: TControl;
+    procedure SetContent(const Value: TControl);
+    function GetContent: TControl;
+  public
+    procedure Show; override;
+  published
+    property Content: TControl read GetContent write SetContent;
+  end;
+
 implementation
 
 uses
   FMX.Graphics,
   FMX.TextLayout,
-  FluentUI.ColorPalettes;
+  FluentUI.ColorPalettes,
+  FluentUI.Core.TextTools;
 
 { TFluendDialogOverlay }
 
-procedure TFluendDialogOverlay.BuildOverlay(AOverlay: TRectangle);
+function TFluendDialogOverlay.BuildOverlay: TRectangle;
 begin
- // AOverlay.BeginUpdate;
+  Result := TRectangle.Create(Self);
+  Result.BeginUpdate;
   try
-    AOverlay.Parent := Screen.ActiveForm;
-    FOverlay.Align := TAlignLayout.Client;
-    FOverlay.Sides := [];
-    FOverlay.OnClick := DoOverlayRectClick;
-    FOverlay.Visible := False;
+    Result.Parent := Screen.ActiveForm;
+    Result.Align := TAlignLayout.Client;
+    Result.Sides := [];
+    Result.OnClick := DoOverlayRectClick;
+    Result.Visible := False;
   finally
- // AOverlay.EndUpdate;
+    Result.EndUpdate;
   end;
 end;
 
@@ -166,15 +194,8 @@ end;
 constructor TFluendDialogOverlay.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FOverlay := TRectangle.Create(Self);
+  FOverlay := BuildOverlay;
   OverlayColor := $66000000;
-end;
-
-destructor TFluendDialogOverlay.Destroy;
-begin
-  Close;
- // FOverlay.Free; -->    FOverlay := TRectangle.Create(self);
-  inherited Destroy;
 end;
 
 procedure TFluendDialogOverlay.DoOverlayRectClick(Sender: TObject);
@@ -199,24 +220,25 @@ end;
 
 procedure TFluendDialogOverlay.Show;
 begin
-  BuildOverlay(FOverlay);
   FOverlay.Visible := True;
 end;
 
 { TFluendDialogBaseContent }
 
-procedure TFluendDialogBaseContent.BuildBaseContent(ABaseContent: TRectangle);
+function TFluendDialogBaseContent.BuildBaseContent(AOwner: TComponent): TRectangle;
 begin
-// ABaseContent.BeginUpdate;
+  Result := TRectangle.Create(AOwner);
+  Result.BeginUpdate;
   try
-    ABaseContent.Parent := FOverlay;
-    ABaseContent.Align := TAlignLayout.Center;
-    ABaseContent.Sides := [];
-    ABaseContent.XRadius := 2;
-    ABaseContent.YRadius := 2;
-    ABaseContent.Stroke.Kind := TBrushKind.None;
+    Result.Parent := FOverlay;
+    Result.Align := TAlignLayout.Center;
+    Result.Sides := [];
+    Result.XRadius := 2;
+    Result.YRadius := 2;
+    Result.Stroke.Kind := TBrushKind.None;
+    Result.Visible := False;
   finally
-  // ABaseContent.EndUpdate;
+    Result.EndUpdate;
   end;
 end;
 
@@ -229,17 +251,10 @@ end;
 constructor TFluendDialogBaseContent.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  FBaseContent := TRectangle.Create(Self);
+  FBaseContent := BuildBaseContent(Self);
   BaseContentColor := $FFFFFFFF;
   Height := 186;
   Width := 340;
-end;
-
-destructor TFluendDialogBaseContent.Destroy;
-begin
-  Close;
- // FBaseContent.Free; --> FBaseContent := TRectangle.Create(Self);
-  inherited;
 end;
 
 function TFluendDialogBaseContent.GetBaseContentColor: TAlphaColor;
@@ -284,7 +299,6 @@ end;
 procedure TFluendDialogBaseContent.Show;
 begin
   inherited Show;
-  BuildBaseContent(FBaseContent);
   FBaseContent.Visible := True;
 end;
 
@@ -292,54 +306,65 @@ end;
 
 procedure TFluentDialogDefault.BuildBody;
 begin
-  FBodyContent := TLayout.Create(FBaseContent);
+  FBodyContent := {$IF Define(DIALOG_DEBUG_LAYERS)}TRectangle{$ELSE}TLayout{$ENDIF}.Create(FBaseContent);
   FBodyContent.Parent := FBaseContent;
   FBodyContent.Align := TAlignLayout.Client;
   FBodyContent.Margins.Left := 24;
   FBodyContent.Margins.Right := 24;
 
-  FSubTitle := TText.Create(Self);
+  FSubTitle := BuildSubTitleControl(FSubTitle);
 end;
 
-procedure TFluentDialogDefault.ShowButtons(APrimary, ADefault: TButton);
+procedure TFluentDialogDefault.Show(AOnButtonClickCallBack: TProc<string>);
 begin
-// APrimary.BeginUpdate;
-// ADefault.BeginUpdate;
+  FOnButtonClickCallBack := AOnButtonClickCallBack;
+  Show;
+end;
+
+procedure TFluentDialogDefault.BuildButtons(out APrimary, ADefault: TButton);
+begin
+  APrimary := TButton.Create(FFooterContent);
+  ADefault := TButton.Create(FFooterContent);
+  APrimary.BeginUpdate;
+  ADefault.BeginUpdate;
   try
     APrimary.StyleLookup := 'FluentButtonPrimary';
     APrimary.Visible := not APrimary.Text.IsEmpty;
     APrimary.Parent := FFooterContent;
     APrimary.Align := TAlignLayout.Right;
     APrimary.Margins.Left := 4;
+    APrimary.Name := 'btnPrimary';
+    APrimary.OnClick := DoButtonClicked;
     //
     ADefault.StyleLookup := '';
     ADefault.Visible := not ADefault.Text.IsEmpty;
     ADefault.Parent := FFooterContent;
     ADefault.Align := TAlignLayout.Right;
     ADefault.Margins.Left := 4;
+    ADefault.Name := 'btnDefault';
+    ADefault.OnClick := DoButtonClicked;
   finally
- // ADefault.EndUpdate;
- // APrimary.EndUpdate;
+    ADefault.EndUpdate;
+    APrimary.EndUpdate;
   end;
 end;
 
 procedure TFluentDialogDefault.BuildFooter;
 begin
-  FFooterContent := TLayout.Create(FBaseContent);
+  FFooterContent := {$IF Define(DIALOG_DEBUG_LAYERS)}TRectangle{$ELSE}TLayout{$ENDIF}.Create(FBaseContent);
   FFooterContent.Height := 33;
   FFooterContent.Parent := FBaseContent;
   FFooterContent.Align := TAlignLayout.Bottom;
   FFooterContent.Margins.Left := 24;
   FFooterContent.Margins.Bottom := 24;
   FFooterContent.Margins.Right := 16;
-
-  FPrimaryButton := TButton.Create(FFooterContent);
-  FDefaultButton := TButton.Create(FFooterContent);
+  FFooterContent.Margins.Top := 16;
+  BuildButtons(FPrimaryButton, FDefaultButton);
 end;
 
 procedure TFluentDialogDefault.BuildHeader;
 begin
-  FHeaderContent := TLayout.Create(FBaseContent);
+  FHeaderContent := {$IF Define(DIALOG_DEBUG_LAYERS)}TRectangle{$ELSE}TLayout{$ENDIF}.Create(FBaseContent);
   FHeaderContent.Parent := FBaseContent;
   FHeaderContent.Align := TAlignLayout.Top;
 
@@ -348,48 +373,49 @@ begin
   FHeaderContent.Margins.Bottom := 20;
   FHeaderContent.Margins.Left := 24;
 
-  FTitle := TText.Create(FHeaderContent);
-  Title := 'TFluentUI Title';
+  FTitle := BuildTitleControl(FHeaderContent);
 end;
 
-procedure TFluentDialogDefault.ShowSubTitleControl(ASubTitleControl: TText);
+function TFluentDialogDefault.BuildSubTitleControl(AOwner: TComponent): TText;
 begin
-// ASubTitleControl.BeginUpdate;
+  Result := TText.Create(AOwner);
+
+  Result.BeginUpdate;
   try
-    ASubTitleControl.Parent := FBodyContent;
-    ASubTitleControl.Align := TAlignLayout.Client;
-    ASubTitleControl.Width := FBodyContent.Width;
-    ASubTitleControl.Color := TAlphaColorRec.Black;
-    ASubTitleControl.TextSettings.FontColor := TfluentNeutralColors.neutralSecondary;
-    ASubTitleControl.TextSettings.Font.Size := 14;
-    ASubTitleControl.TextSettings.Font.Family := 'Segoe UI';
-    ASubTitleControl.HorzTextAlign := TTextAlign.Leading;
-    ASubTitleControl.AutoSize := True;
-    FBodyContent.Height := ASubTitleControl.Height;
-    FSubTitle.Visible := True;
+    Result.Parent := FBodyContent;
+    Result.Margins.Bottom := 24;
+    Result.Align := TAlignLayout.Top;
+    Result.Width := FBodyContent.Width;
+    Result.Color := TAlphaColorRec.Black;
+    Result.TextSettings.FontColor := TfluentNeutralColors.neutralSecondary;
+    Result.TextSettings.Font.Size := 14;
+    Result.TextSettings.Font.Family := 'Segoe UI';
+    Result.HorzTextAlign := TTextAlign.Leading;
+    Result.AutoSize := True;
+    FBodyContent.Height := Result.Height;
+    Result.Visible := False;
   finally
-// ASubTitleControl.EndUpdate;
+    Result.EndUpdate;
   end;
 end;
 
-procedure TFluentDialogDefault.ShowTitleControl(ATitleControl: TText);
+function TFluentDialogDefault.BuildTitleControl(AOwner: TComponent): TText;
 begin
-// ATitleControl.BeginUpdate;
+  Result := TText.Create(AOwner);
+  Result.BeginUpdate;
   try
-    ATitleControl.Parent := FHeaderContent;
-    ATitleControl.Align := TAlignLayout.Client;
-    ATitleControl.Width := FHeaderContent.Width;
-    ATitleControl.Color := TAlphaColorRec.Black;
-    ATitleControl.TextSettings.FontColor := TfluentNeutralColors.neutralPrimary;
-    ATitleControl.TextSettings.Font.Size := 20;
-    ATitleControl.TextSettings.Font.Family := 'Segoe UI';
-    ATitleControl.HorzTextAlign := TTextAlign.Leading;
-    ATitleControl.AutoSize := True;
-    FHeaderContent.Height := ATitleControl.Height;
-    FTitle.Visible := True;
+    Result.TextSettings.FontColor := TfluentNeutralColors.neutralPrimary;
+    Result.TextSettings.Font.Size := 20;
+    Result.TextSettings.Font.Family := 'Segoe UI';
+    Result.Parent := FHeaderContent;
+    Result.Align := TAlignLayout.Client;
+    Result.Color := TAlphaColorRec.Black;
+    Result.HorzTextAlign := TTextAlign.Leading;
+    Result.Visible := False;
   finally
- // ATitleControl.EndUpdate;
+    Result.EndUpdate;
   end;
+  FHeaderContent.Height := TTextTools.CalcTextSize(Result).Height;
 end;
 
 procedure TFluentDialogDefault.Close;
@@ -407,7 +433,14 @@ begin
   BuildHeader;
   BuildBody;
   BuildFooter;
+  Title := 'TFluentUI Title';
+end;
 
+procedure TFluentDialogDefault.DoButtonClicked(Sender: TObject);
+begin
+  if Assigned(FOnButtonClickCallBack) then
+    FOnButtonClickCallBack((Sender as TButton).Text);
+  Close;
 end;
 
 function TFluentDialogDefault.GetDefaultButtonText: string;
@@ -458,10 +491,30 @@ end;
 procedure TFluentDialogDefault.Show;
 begin
   inherited Show;
-  ShowTitleControl(FTitle);
-  ShowSubTitleControl(FSubTitle);
-  ShowButtons(FPrimaryButton, FDefaultButton);
+  FTitle.Visible := True;
+  FSubTitle.Visible := True;
+  FPrimaryButton.Visible := True;
+  FDefaultButton.Visible := True;
+end;
 
+function TFluentDialogUserContent.GetContent: TControl;
+begin
+  Result := FContent;
+end;
+
+procedure TFluentDialogUserContent.SetContent(const Value: TControl);
+begin
+  FContent := Value;
+  FContent.Parent := FBodyContent;
+  FContent.Align := TAlignLayout.Top;
+end;
+
+{ TFluentDialogUserContent }
+
+procedure TFluentDialogUserContent.Show;
+begin
+  inherited Show;
+  FContent.Visible := True;
 end;
 
 end.
