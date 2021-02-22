@@ -148,6 +148,9 @@ type
   IFluentDialogUserContent = interface(IFluentDialogDefault)
     ['{99A08205-F197-4E84-978F-347365C7FD81}']
     procedure SetContent(const Value: TControl);
+    function GetContent: TControl;
+    //
+    property Content: TControl read GetContent write SetContent;
   end;
 
   TFluentDialogUserContent = class(TFluentDialogDefault, IFluentDialogUserContent)
