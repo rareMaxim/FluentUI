@@ -9,7 +9,7 @@ uses
 type
   TTextTools = class
   public
-    class function CalcTextSize(Text: string; Font: TFont; Size: Single = 0): TSizeF; overload;
+    class function CalcTextSize(const Text: string; Font: TFont; const Size: Single = 0): TSizeF; overload;
     class function CalcTextSize(Text: TText): TSizeF; overload;
   end;
 
@@ -27,7 +27,7 @@ begin
   Result := CalcTextSize(Text.Text, Text.Font, 0);
 end;
 
-class function TTextTools.CalcTextSize(Text: string; Font: TFont; Size: Single = 0): TSizeF;
+class function TTextTools.CalcTextSize(const Text: string; Font: TFont; const Size: Single = 0): TSizeF;
 var
   TextLayout: TTextLayout;
 begin
