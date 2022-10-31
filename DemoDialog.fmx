@@ -271,4 +271,22 @@ object Form7: TForm7
     Position.Y = 80.000000000000000000
     Text = 'SpeedButton1'
   end
+  object Memo1: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Lines.Strings = (
+      '1'
+      '2'
+      '3'
+      '4'
+      '5')
+    Position.X = 296.000000000000000000
+    Position.Y = 216.000000000000000000
+    Size.Width = 201.000000000000000000
+    Size.Height = 50.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 11
+    Viewport.Width = 181.000000000000000000
+    Viewport.Height = 46.000000000000000000
+  end
 end

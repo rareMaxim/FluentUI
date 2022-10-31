@@ -33,6 +33,7 @@ requires
 
 contains
   FluentUI.Dialog in 'FluentUI.Dialog.pas',
-  FluentUI.ColorPalettes in 'FluentUI.ColorPalettes.pas';
+  FluentUI.ColorPalettes in 'FluentUI.ColorPalettes.pas',
+  FluentUI.Core.TextTools in 'FluentUI.Core.TextTools.pas';
 
 end.

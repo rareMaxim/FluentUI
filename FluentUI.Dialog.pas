@@ -70,6 +70,8 @@ type
   end;
 
   TFluendDialogBaseContent = class(TFluendDialogOverlay, IFluentDialog)
+  private const
+    DEFAULT_HEIGTH = 186;
   private
     FBaseContent: TRectangle;
     function GetBaseContentColor: TAlphaColor;
@@ -111,6 +113,7 @@ type
   end;
 
   TFluentDialogDefault = class(TFluendDialogBaseContent, IFluentDialogDefault)
+
   private
     FTitle: TText;
     FSubTitle: TText;
@@ -160,6 +163,7 @@ type
     function GetContent: TControl;
   public
     procedure Show; override;
+    constructor Create(AOwner: TComponent); override;
   published
     property Content: TControl read GetContent write SetContent;
   end;
@@ -256,7 +260,7 @@ begin
   inherited Create(AOwner);
   FBaseContent := BuildBaseContent(Self);
   BaseContentColor := $FFFFFFFF;
-  Height := 186;
+  Height := DEFAULT_HEIGTH;
   Width := 340;
 end;
 
@@ -287,14 +291,14 @@ end;
 
 procedure TFluendDialogBaseContent.SetHeight(const Value: Single);
 begin
-{ https://developer.microsoft.com/en-us/fluentui#/controls/web/dialog }
+  { https://developer.microsoft.com/en-us/fluentui#/controls/web/dialog }
   if (Value >= 172) and (Value <= 340) then
     FBaseContent.Height := Value;
 end;
 
 procedure TFluendDialogBaseContent.SetWidth(const Value: Single);
 begin
-{ https://developer.microsoft.com/en-us/fluentui#/controls/web/dialog }
+  { https://developer.microsoft.com/en-us/fluentui#/controls/web/dialog }
   if (Value >= 288) and (Value <= 340) then
     FBaseContent.Width := Value;
 end;
@@ -500,6 +504,12 @@ begin
   FDefaultButton.Visible := True;
 end;
 
+constructor TFluentDialogUserContent.Create(AOwner: TComponent);
+begin
+  inherited Create(AOwner);
+  FContent := nil;
+end;
+
 function TFluentDialogUserContent.GetContent: TControl;
 begin
   Result := FContent;
@@ -508,8 +518,14 @@ end;
 procedure TFluentDialogUserContent.SetContent(const Value: TControl);
 begin
   FContent := Value;
-  FContent.Parent := FBodyContent;
-  FContent.Align := TAlignLayout.Top;
+  if Assigned(FContent) then
+  begin
+    Self.Height := DEFAULT_HEIGTH + FContent.Height;
+    FContent.Parent := FBodyContent;
+    FContent.Align := TAlignLayout.Top;
+  end
+  else
+    Self.Height := DEFAULT_HEIGTH;
 end;
 
 { TFluentDialogUserContent }
@@ -517,7 +533,8 @@ end;
 procedure TFluentDialogUserContent.Show;
 begin
   inherited Show;
-  FContent.Visible := True;
+  if Assigned(FContent) then
+    FContent.Visible := True;
 end;
 
 end.
